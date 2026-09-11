@@ -1,0 +1,59 @@
+[
+{ type: install
+  message: <<EOM
+
+ufsbe — FUSE3 UFS1/UFS2 with B-epsilon tree
+============================================
+
+The fusefs kernel module must be loaded before mounting:
+
+  # kldload fusefs
+
+To load it at boot, add the following to /boot/loader.conf:
+
+  fusefs_load="YES"
+
+MOUNTING
+--------
+
+Direct invocation (most common):
+
+  # ufsbe /dev/ada0s1a /mnt
+
+Via mount(8) (uses the mount_ufsbe(8) wrapper):
+
+  # mount -t ufsbe /dev/ada0s1a /mnt
+
+Via mount_fusefs(8):
+
+  # mount_fusefs auto /mnt ufsbe /dev/ada0s1a
+
+To mount read-only:
+
+  # ufsbe -o ro /dev/ada0s1a /mnt
+
+FSTAB ENTRY
+-----------
+
+  /dev/ada0s1a  /mnt  ufsbe  rw  0  0
+
+NOTES
+-----
+
+* The on-disk format is standard UFS2 as written by newfs(8).
+  Existing UFS2 filesystems (with or without soft updates) can be
+  mounted read-write without conversion.
+
+* Soft Update Journaling (SUJ) is detected automatically from the
+  superblock.  If the filesystem was not cleanly unmounted the journal
+  is replayed before the mount completes.
+
+* The B-epsilon tree block map is stored in the inode's di_extb[]
+  fields (extended attribute block pointers, unused by the kernel for
+  non-EA inodes).  A filesystem mounted by the kernel afterwards will
+  treat those fields as zeroes and will be fully consistent; the
+  B-epsilon index is simply rebuilt the next time ufsbe mounts it.
+
+EOM
+}
+]

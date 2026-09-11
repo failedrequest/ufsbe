@@ -1,0 +1,189 @@
+.\" ufsbe.8 — manual page for the ufsbe FUSE3 UFS filesystem daemon
+.\" SPDX-License-Identifier: BSD-2-Clause
+.Dd September 11, 2026
+.Dt UFSBE 8
+.Os
+.Sh NAME
+.Nm ufsbe
+.Nd FUSE3 UFS1/UFS2 filesystem daemon with B-epsilon tree
+.Sh SYNOPSIS
+.Nm
+.Op Fl o Ar options
+.Ar special
+.Ar mountpoint
+.Sh DESCRIPTION
+.Nm
+is a userspace filesystem daemon that mounts a UFS1 or UFS2 block
+device or disk image on
+.Ar mountpoint
+using the FUSE3 kernel interface.
+.Pp
+.Nm
+supports:
+.Bl -bullet -compact
+.It
+UFS1 and UFS2 on-disk formats created by
+.Xr newfs 8 .
+.It
+Soft Updates
+.Pq softdep .
+.It
+Soft Update Journaling
+.Pq SUJ :
+the journal is replayed automatically when the filesystem was not
+cleanly unmounted.
+.It
+A write-back LRU buffer cache with
+.Dv B_BARRIER
+ordering for soft-updates correctness.
+.It
+A B-epsilon tree block map that replaces traditional direct and
+indirect block pointers, yielding significantly higher random-I/O
+throughput.
+.It
+A B-epsilon tree directory index that provides O(log N) name lookup
+using a 64-bit FNV1a hash.
+The on-disk
+.Vt struct direct
+linear layout is preserved for compatibility with
+.Xr fsck_ffs 8
+and the kernel UFS driver.
+.El
+.Pp
+The
+.Xr fusefs 4
+kernel module must be loaded before
+.Nm
+is invoked.
+See
+.Sx SETUP .
+.Sh OPTIONS
+.Bl -tag -width indent
+.It Fl o Ar options
+Comma-separated mount options passed to FUSE3.
+Recognised options include:
+.Bl -tag -width "allow_other" -compact
+.It Cm ro
+Mount read-only.
+.It Cm allow_other
+Allow users other than the mounting user to access the filesystem.
+Requires
+.Xr sysctl 8
+.Va vfs.usermount
+to be set to 1, or the mount to be performed by root.
+.It Cm default_permissions
+Enable kernel-side permission checking.
+.El
+.El
+.Sh SETUP
+Load the fusefs kernel module:
+.Bd -literal -offset indent
+# kldload fusefs
+.Ed
+.Pp
+To load it at boot, add the following line to
+.Pa /boot/loader.conf :
+.Bd -literal -offset indent
+fusefs_load="YES"
+.Ed
+.Sh IMPLEMENTATION NOTES
+.Ss On-disk format
+.Nm
+reads and writes standard UFS2 superblocks and cylinder groups using
+.Xr libufs 3 .
+The on-disk format is identical to that produced by
+.Xr newfs 8 .
+.Ss B-epsilon tree block map
+Each inode's block map is stored in a persistent B-epsilon tree
+(Brodal & Fagerberg 1996, Bender et al. 2007).
+Tree root block numbers are stored in the
+.Va di_extb[0]
+and
+.Va di_extb[1]
+fields of the
+.Vt ufs2_dinode
+structure; these fields are unused by the kernel for inodes without
+extended attributes.
+A filesystem that has been used with
+.Nm
+can be mounted by the kernel UFS driver afterwards:
+the kernel will treat
+.Va di_extb
+as zero and rebuild its own block map from the direct and indirect
+block pointers \(em which are absent in the B-epsilon representation.
+Running
+.Xr fsck_ffs 8
+after a kernel mount will recover the filesystem fully.
+.Ss Soft Update Journaling
+The SUJ circular log is detected from the superblock
+.Va FS_SUJ
+flag.
+On mount,
+.Nm
+replays any committed but unapplied journal records before
+making the filesystem available.
+.Sh EXAMPLES
+Mount a UFS2 partition:
+.Bd -literal -offset indent
+# ufsbe /dev/ada0s1a /mnt
+.Ed
+.Pp
+Mount a disk image read-only:
+.Bd -literal -offset indent
+# ufsbe -o ro /path/to/disk.img /mnt
+.Ed
+.Pp
+Mount via
+.Xr mount 8
+using the
+.Xr mount_ufsbe 8
+wrapper:
+.Bd -literal -offset indent
+# mount -t ufsbe /dev/ada0s1a /mnt
+.Ed
+.Pp
+Mount via
+.Xr mount_fusefs 8 :
+.Bd -literal -offset indent
+# mount_fusefs auto /mnt ufsbe /dev/ada0s1a
+.Ed
+.Pp
+Unmount:
+.Bd -literal -offset indent
+# umount /mnt
+.Ed
+.Sh FSTAB ENTRY
+To mount automatically at boot, add an entry to
+.Xr fstab 5 :
+.Bd -literal -offset indent
+/dev/ada0s1a  /mnt  ufsbe  rw  0  0
+.Ed
+.Pp
+Note that FUSE filesystems are not mounted during early boot
+.Pq before the FUSE module and userland daemon are available .
+Place the entry after the root filesystem has been set up, or use
+.Xr rc.conf 5
+.Va late_mounts .
+.Sh SEE ALSO
+.Xr libufs 3 ,
+.Xr fusefs 4 ,
+.Xr fstab 5 ,
+.Xr fsck_ffs 8 ,
+.Xr mount 8 ,
+.Xr mount_fusefs 8 ,
+.Xr mount_ufsbe 8 ,
+.Xr newfs 8
+.Sh AUTHORS
+.An The ufsbe authors
+.Sh CAVEATS
+Hard links, extended attributes, and ACLs are not currently supported.
+Triple-indirect block addresses are not supported in the B-epsilon
+block map path; files requiring more than approximately
+.Pq nindir^2 + nindir + 12
+blocks will return
+.Er ENOSPC .
+.Sh BUGS
+The B-epsilon tree roots are stored in
+.Va di_extb[] ,
+which conflicts with extended attribute storage if the kernel later
+enables per-inode extended attributes on the same filesystem.
