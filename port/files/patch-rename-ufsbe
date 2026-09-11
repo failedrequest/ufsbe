@@ -1,0 +1,167 @@
+--- Makefile	2026-09-11 11:45:52.263380000 -0400
++++ -	2026-09-11 14:45:19.706918000 -0400
+@@ -20,10 +20,16 @@
+            src/fuse_ops.c
+ 
+ OBJS     = ${SRCS:.c=.o}
+-TARGET   = ufs-fuse
++TARGET   = ufsbe
+ 
+-.PHONY: all clean
++PREFIX  ?= /usr/local
++SBINDIR  = ${PREFIX}/sbin
++MANDIR   = ${PREFIX}/share/man/man8
+ 
++STAGEDIR ?=
++
++.PHONY: all clean install
++
+ all: ${TARGET}
+ 
+ ${TARGET}: ${OBJS}
+@@ -31,6 +37,9 @@
+ 
+ .c.o:
+ 	${CC} ${CFLAGS} -c ${.IMPSRC} -o ${.TARGET}
++
++install: ${TARGET}
++	install -s -m 0555 ${TARGET} ${STAGEDIR}${SBINDIR}/ufsbe
+ 
+ clean:
+ 	rm -f ${OBJS} ${TARGET}
+--- src/main.c	2026-09-10 22:26:58.922779000 -0400
++++ /tmp/main.c.patched	2026-09-11 15:18:56.524985000 -0400
+@@ -1,8 +1,8 @@
+ /*
+- * main.c — ufs-fuse entry point.
++ * main.c — ufsbe entry point.
+  *
+  * Usage:
+- *   ufs-fuse [options] <device|image> <mountpoint>
++ *   ufsbe [options] <device|image> <mountpoint>
+  *
+  * Options:
+  *   -o ro          Mount read-only
+@@ -41,7 +41,7 @@
+ #include "fuse_ops.h"
+ 
+ /* ------------------------------------------------------------------ */
+-/* ufs-fuse specific options                                            */
++/* ufsbe specific options                                            */
+ /* ------------------------------------------------------------------ */
+ 
+ struct ufs_fuse_opts {
+@@ -61,7 +61,7 @@
+ {
+     struct ufs_mount *ump = calloc(1, sizeof(*ump));
+     if (ump == NULL) {
+-        fprintf(stderr, "ufs-fuse: out of memory\n");
++        fprintf(stderr, "ufsbe: out of memory\n");
+         return NULL;
+     }
+ 
+@@ -79,7 +79,7 @@
+                               DEV_BSIZE,   /* initial; updated after SB read */
+                               cache_bufs);
+     if (ump->um_bdev == NULL) {
+-        fprintf(stderr, "ufs-fuse: cannot open %s: %s\n",
++        fprintf(stderr, "ufsbe: cannot open %s: %s\n",
+                 opts->device, strerror(errno));
+         free(ump);
+         return NULL;
+@@ -88,7 +88,7 @@
+     /* Read and validate superblock */
+     int rc = super_read(ump);
+     if (rc != 0) {
+-        fprintf(stderr, "ufs-fuse: cannot read superblock from %s: %s\n",
++        fprintf(stderr, "ufsbe: cannot read superblock from %s: %s\n",
+                 opts->device, strerror(-rc));
+         bdev_close(ump->um_bdev);
+         free(ump);
+@@ -109,14 +109,14 @@
+     else if (opts->journal < 0)
+         ump->um_flags &= ~UFS_MOUNT_JOURNAL;
+ 
+-    fprintf(stderr, "ufs-fuse: mounted %s (UFS%d%s%s)\n",
++    fprintf(stderr, "ufsbe: mounted %s (UFS%d%s%s)\n",
+             opts->device,
+             (ump->um_flags & UFS_MOUNT_UFS2) ? 2 : 1,
+             (ump->um_flags & UFS_MOUNT_SOFTDEP) ? " softdep" : "",
+             (ump->um_flags & UFS_MOUNT_JOURNAL) ? "+journal" : "");
+ 
+     if (ump->um_flags & UFS_MOUNT_UNCLEAN)
+-        fprintf(stderr, "ufs-fuse: WARNING: filesystem was not cleanly "
++        fprintf(stderr, "ufsbe: WARNING: filesystem was not cleanly "
+                 "unmounted\n");
+ 
+     /* Initialise inode cache */
+@@ -126,7 +126,7 @@
+     if (UFS_SOFTDEP(ump)) {
+         rc = softdep_init(ump);
+         if (rc != 0) {
+-            fprintf(stderr, "ufs-fuse: softdep_init failed: %s\n",
++            fprintf(stderr, "ufsbe: softdep_init failed: %s\n",
+                     strerror(-rc));
+             /* Non-fatal: continue without soft updates */
+             ump->um_flags &= ~UFS_MOUNT_SOFTDEP;
+@@ -137,7 +137,7 @@
+     if (UFS_JOURNAL(ump)) {
+         rc = journal_init(ump);
+         if (rc != 0) {
+-            fprintf(stderr, "ufs-fuse: journal_init failed: %s\n",
++            fprintf(stderr, "ufsbe: journal_init failed: %s\n",
+                     strerror(-rc));
+             ump->um_flags &= ~UFS_MOUNT_JOURNAL;
+         }
+@@ -217,13 +217,13 @@
+     memset(&opts, 0, sizeof(opts));
+ 
+     if (fuse_opt_parse(&args, &opts, ufs_fuse_opts_spec, opt_proc) != 0) {
+-        fprintf(stderr, "ufs-fuse: option parsing failed\n");
++        fprintf(stderr, "ufsbe: option parsing failed\n");
+         return 1;
+     }
+ 
+     if (opts.device == NULL) {
+         fprintf(stderr,
+-            "usage: ufs-fuse [options] <device|image> <mountpoint>\n"
++            "usage: ufsbe [options] <device|image> <mountpoint>\n"
+             "  -o ro          read-only\n"
+             "  -o softdep     enable soft updates\n"
+             "  -o nosoftdep   disable soft updates\n"
+@@ -242,7 +242,7 @@
+     memset(&fopts, 0, sizeof(fopts));
+     if (fuse_parse_cmdline(&args, &fopts) != 0 ||
+         fopts.mountpoint == NULL) {
+-        fprintf(stderr, "ufs-fuse: no mountpoint specified\n");
++        fprintf(stderr, "ufsbe: no mountpoint specified\n");
+         fuse_opt_free_args(&args);
+         free(opts.device);
+         return 1;
+@@ -268,7 +268,7 @@
+         sizeof(*fuse_ufs_ops()), NULL);
+ 
+     if (se == NULL) {
+-        fprintf(stderr, "ufs-fuse: fuse_session_new failed\n");
++        fprintf(stderr, "ufsbe: fuse_session_new failed\n");
+         do_unmount(ump);
+         free(mountpoint);
+         fuse_opt_free_args(&args);
+@@ -277,7 +277,7 @@
+     }
+ 
+     if (fuse_set_signal_handlers(se) != 0) {
+-        fprintf(stderr, "ufs-fuse: fuse_set_signal_handlers failed\n");
++        fprintf(stderr, "ufsbe: fuse_set_signal_handlers failed\n");
+         fuse_session_destroy(se);
+         do_unmount(ump);
+         free(mountpoint);
+@@ -287,7 +287,7 @@
+     }
+ 
+     if (fuse_session_mount(se, mountpoint) != 0) {
+-        fprintf(stderr, "ufs-fuse: fuse_session_mount failed on %s\n",
++        fprintf(stderr, "ufsbe: fuse_session_mount failed on %s\n",
+                 mountpoint);
+         fuse_remove_signal_handlers(se);
+         fuse_session_destroy(se);

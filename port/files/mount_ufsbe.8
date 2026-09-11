@@ -1,0 +1,60 @@
+.\" mount_ufsbe.8 — manual page for the mount_ufsbe(8) helper
+.\" SPDX-License-Identifier: BSD-2-Clause
+.Dd September 11, 2026
+.Dt MOUNT_UFSBE 8
+.Os
+.Sh NAME
+.Nm mount_ufsbe
+.Nd mount a UFS1/UFS2 filesystem via ufsbe
+.Sh SYNOPSIS
+.Nm
+.Op Fl o Ar options
+.Ar special
+.Ar mountpoint
+.Sh DESCRIPTION
+.Nm
+is a thin wrapper around
+.Xr ufsbe 8
+that conforms to the interface expected by
+.Xr mount 8 .
+.Pp
+When
+.Xr mount 8
+is invoked with
+.Fl t Cm ufsbe ,
+or when an
+.Xr fstab 5
+entry specifies filesystem type
+.Cm ufsbe ,
+.Xr mount 8
+calls
+.Pa /usr/local/sbin/mount_ufsbe
+with the same arguments:
+.Pp
+.Dl mount_ufsbe [-o options] special mountpoint
+.Pp
+.Nm
+forwards all arguments unchanged to
+.Xr ufsbe 8 .
+.Sh OPTIONS
+See
+.Xr ufsbe 8
+for a description of supported
+.Fl o
+mount options.
+.Sh EXAMPLES
+Mount a UFS2 partition using
+.Xr mount 8 :
+.Bd -literal -offset indent
+# mount -t ufsbe /dev/ada0s1a /mnt
+.Ed
+.Pp
+Mount read-only:
+.Bd -literal -offset indent
+# mount -t ufsbe -o ro /dev/ada0s1a /mnt
+.Ed
+.Sh SEE ALSO
+.Xr fstab 5 ,
+.Xr mount 8 ,
+.Xr mount_fusefs 8 ,
+.Xr ufsbe 8

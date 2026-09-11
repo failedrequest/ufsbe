@@ -1,0 +1,56 @@
+/*
+ * ufs_fs.h — Thin wrapper around the system UFS on-disk format headers.
+ *
+ * We use the FreeBSD system headers directly so that the struct fs,
+ * struct cg, and all macros match exactly what newfs writes on disk.
+ *
+ * SPDX-License-Identifier: BSD-2-Clause
+ */
+
+#ifndef UFS_FS_H
+#define UFS_FS_H
+
+#include <sys/types.h>
+#include <sys/param.h>
+#include <ufs/ufs/dinode.h>   /* must come before fs.h for type defs */
+#include <ufs/ffs/fs.h>
+
+/* ------------------------------------------------------------------ */
+/* Extra constants not in the system header                             */
+/* ------------------------------------------------------------------ */
+
+/* fs_clean values */
+#define FS_ISCLEAN  1
+#define FS_ISDIRTY  0
+
+/* SUJ journal parameters (SUJ_MIN is already defined in system fs.h) */
+#define SUJ_MAX_SIZE    (32 * 1024 * 1024)
+
+/* SBSIZE may not be defined in newer system headers */
+#ifndef SBSIZE
+#define SBSIZE 8192
+#endif
+
+/* DEV_BSIZE may not be visible here without sys/param.h */
+#ifndef DEV_BSIZE
+#define DEV_BSIZE 512
+#endif
+
+#ifndef MAXFRAG
+#define MAXFRAG 8
+#endif
+
+/* ------------------------------------------------------------------ */
+/* Superblock search list (already defined in system header as         */
+/* SBLOCKSEARCH, but we also keep our own name)                        */
+/* ------------------------------------------------------------------ */
+
+static const int64_t ufs_sb_offsets[] = {
+    SBLOCK_UFS2,
+    SBLOCK_UFS1,
+    SBLOCK_FLOPPY,
+    SBLOCK_PIGGY,
+    -1
+};
+
+#endif /* UFS_FS_H */
