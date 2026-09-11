@@ -12,6 +12,7 @@ LDFLAGS  = ${FUSE3_LIBS} -lufs
 SRCS     = src/main.c      \
            src/block.c     \
            src/super.c     \
+           src/betree.c    \
            src/inode.c     \
            src/dir.c       \
            src/softdep.c   \

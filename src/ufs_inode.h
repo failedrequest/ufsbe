@@ -57,6 +57,17 @@ struct inode {
         struct ufs2_dinode  di2;
     } i_din;
 
+    /*
+     * B-ε tree root block numbers.
+     * For regular files:  i_be_blkmap_root maps logical-block-number → fs-block
+     * For directories:    i_be_dir_root    maps name-hash → inode number
+     * Both are stored in di_spare[]/di_extb[] on-disk (UFS2) or left in-core
+     * only for UFS1 (rebuilt on next mount — UFS1 files tend to be small).
+     * A value of 0 means the tree does not yet exist.
+     */
+    int64_t             i_be_blkmap_root;   /* blkmap B-ε tree root */
+    int64_t             i_be_dir_root;      /* dir-index B-ε tree root */
+
     /* Soft-updates linkage (opaque pointer managed by softdep.c) */
     void               *i_sdep;
 };
