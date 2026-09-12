@@ -5,7 +5,7 @@ PKGNAMEPREFIX=	fuse-
 
 MAINTAINER=	ports@FreeBSD.org
 COMMENT=	FUSE3 UFS1/UFS2 filesystem with B-epsilon tree blkmap and directory index
-WWW=		https://github.com/example/ufs-fuse
+WWW=		https://github.com/failedrequest/ufsbe
 
 LICENSE=	BSD2CLAUSE
 LICENSE_FILE=	${WRKSRC}/LICENSE
@@ -13,20 +13,15 @@ LICENSE_FILE=	${WRKSRC}/LICENSE
 # fuse:3 pulls in fusefs-libs3; libufs is part of the base system
 USES=		fuse:3 pkgconfig
 
-# Source tarball is fetched from wherever you host it.
-# While the project lives locally, point MASTER_SITES at a local file server
-# or replace with your GitHub/hosting URL.
-MASTER_SITES=	https://example.com/releases/
+# Source tarball is fetched from GitHub releases.
+MASTER_SITES=	https://github.com/failedrequest/ufsbe/releases/download/v${DISTVERSION}/
 
-# Rename the top-level directory inside the tarball
+# The top-level directory inside the tarball is ufsbe-<version>
 WRKSRC=		${WRKDIR}/${PORTNAME}-${DISTVERSION}
 
-# The project Makefile uses bmake variables (${.IMPSRC}, ${.TARGET}) which
-# are already correct for FreeBSD make.  We only need to override the install
-# step; there is no configure step.
+# The project Makefile uses bmake variables; no configure step needed.
 NO_CONFIGURE=	yes
 
-# Pass extra variables into the project Makefile
 # patch-rename-ufsbe renames TARGET from ufs-fuse to ufsbe in Makefile
 # and replaces all "ufs-fuse" strings in src/main.c with "ufsbe"
 MAKE_ARGS=	TARGET=ufsbe \
@@ -35,20 +30,31 @@ MAKE_ARGS=	TARGET=ufsbe \
 
 PLIST_FILES=	sbin/ufsbe \
 		sbin/mount_ufsbe \
+		sbin/newfs_ufsbe \
+		sbin/fsck_ufsbe \
 		share/man/man8/ufsbe.8.gz \
-		share/man/man8/mount_ufsbe.8.gz
+		share/man/man8/mount_ufsbe.8.gz \
+		share/man/man8/newfs_ufsbe.8.gz \
+		share/man/man8/fsck_ufsbe.8.gz
 
 # ── install ──────────────────────────────────────────────────────────
-# The upstream Makefile does not have an install target; we provide one.
 
 do-install:
 	${INSTALL_PROGRAM} ${WRKSRC}/ufsbe \
 		${STAGEDIR}${PREFIX}/sbin/ufsbe
 	${INSTALL_SCRIPT} ${FILESDIR}/mount_ufsbe.sh \
 		${STAGEDIR}${PREFIX}/sbin/mount_ufsbe
+	${INSTALL_PROGRAM} ${WRKSRC}/newfs_ufsbe \
+		${STAGEDIR}${PREFIX}/sbin/newfs_ufsbe
+	${INSTALL_PROGRAM} ${WRKSRC}/fsck_ufsbe \
+		${STAGEDIR}${PREFIX}/sbin/fsck_ufsbe
 	${INSTALL_MAN} ${FILESDIR}/ufsbe.8 \
 		${STAGEDIR}${PREFIX}/share/man/man8/ufsbe.8
 	${INSTALL_MAN} ${FILESDIR}/mount_ufsbe.8 \
 		${STAGEDIR}${PREFIX}/share/man/man8/mount_ufsbe.8
+	${INSTALL_MAN} ${WRKSRC}/tools/newfs_ufsbe/newfs_ufsbe.8 \
+		${STAGEDIR}${PREFIX}/share/man/man8/newfs_ufsbe.8
+	${INSTALL_MAN} ${WRKSRC}/tools/fsck_ufsbe/fsck_ufsbe.8 \
+		${STAGEDIR}${PREFIX}/share/man/man8/fsck_ufsbe.8
 
 .include <bsd.port.mk>

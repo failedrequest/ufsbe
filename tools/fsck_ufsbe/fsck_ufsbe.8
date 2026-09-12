@@ -1,0 +1,121 @@
+.\" fsck_ufsbe.8
+.\" SPDX-License-Identifier: BSD-2-Clause
+.Dd September 11, 2026
+.Dt FSCK_UFSBE 8
+.Os
+.Sh NAME
+.Nm fsck_ufsbe
+.Nd check and repair a ufsbe filesystem
+.Sh SYNOPSIS
+.Nm
+.Op Fl dfnpy
+.Ar special
+.Sh DESCRIPTION
+.Nm
+checks and repairs a UFS2 filesystem that has the
+.Dv FS_BETREE
+flag
+.Pq 0x00000800
+set in its superblock.
+Such a filesystem stores per-inode block maps as B-epsilon trees in
+.Va di_extb[0]
+and directory indexes in
+.Va di_extb[1]
+rather than using the standard
+.Va di_db[]
+and
+.Va di_ib[]
+fields.
+.Pp
+.Nm
+refuses to run on a filesystem without
+.Dv FS_BETREE
+set; use
+.Xr fsck_ffs 8
+for standard UFS filesystems.
+Do not run
+.Xr fsck_ffs 8
+on a
+.Dv FS_BETREE
+filesystem.
+.Ss Checking phases
+.Bl -tag -width "Phase 0"
+.It Phase 0
+Read and validate the superblock.
+Confirm
+.Dv FS_BETREE
+is set.
+.It Phase 1
+Walk every allocated inode.
+For each inode:
+.Bl -bullet -compact
+.It
+Verify
+.Va di_db[]
+and
+.Va di_ib[]
+are all zero.
+.It
+Traverse the B-epsilon blkmap tree
+.Pq Va di_extb[0]
+and verify node magic, key sort order, and block number range.
+Check for duplicate block references across all inodes.
+.It
+Traverse the B-epsilon directory-index tree
+.Pq Va di_extb[1]
+for directory inodes.
+.It
+Recount referenced blocks and compare to
+.Va di_blocks ;
+correct if mismatched.
+.El
+.It Phase 2
+Scan directory data blocks
+.Pq linear Vt struct direct
+for invalid
+.Va d_reclen
+or oversized
+.Va d_namlen
+values.
+.It Phase 5
+Compare the cylinder-group free-block bitmaps against the set of
+blocks actually referenced by inodes.
+Report blocks marked free but in use.
+.El
+.Sh OPTIONS
+.Bl -tag -width indent
+.It Fl d
+Enable debug output.
+.It Fl f
+Force check even if the filesystem is marked clean.
+.It Fl n
+Assume
+.Dq no
+to all repair prompts
+.Pq read-only check .
+.It Fl p
+Preen: fix errors automatically without prompting.
+.It Fl y
+Assume
+.Dq yes
+to all repair prompts.
+.El
+.Sh EXIT STATUS
+.Ex -std
+Exit code 0 means the filesystem is clean or all errors were fixed.
+Exit code 8 means errors remain that could not be fixed.
+.Sh EXAMPLES
+Check a filesystem preen-style:
+.Bd -literal -offset indent
+# fsck_ufsbe -p /dev/md0
+.Ed
+.Pp
+Force a full check even if clean:
+.Bd -literal -offset indent
+# fsck_ufsbe -f /dev/md0
+.Ed
+.Sh SEE ALSO
+.Xr ufsbe 8 ,
+.Xr newfs_ufsbe 8 ,
+.Xr fsck_ffs 8 ,
+.Xr libufs 3

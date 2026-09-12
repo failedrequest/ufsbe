@@ -28,6 +28,7 @@
 #define UFS_MOUNT_NEEDSFSCK 0x0010  /* fsck required at next mount */
 #define UFS_MOUNT_UNCLEAN   0x0020  /* was not cleanly unmounted */
 #define UFS_MOUNT_UFS2      0x0040  /* filesystem is UFS2 */
+#define UFS_MOUNT_BETREE    0x0080  /* B-epsilon block map + dir index */
 
 /* ------------------------------------------------------------------ */
 /* In-core mount                                                        */
@@ -86,5 +87,6 @@ struct ufs_mount {
 #define UMP_RDONLY(ump) (((ump)->um_flags & UFS_MOUNT_RDONLY) != 0)
 #define UFS_SOFTDEP(ump)(((ump)->um_flags & UFS_MOUNT_SOFTDEP) != 0)
 #define UFS_JOURNAL(ump)(((ump)->um_flags & UFS_MOUNT_JOURNAL) != 0)
+#define UFS_BETREE(ump) (((ump)->um_flags & UFS_MOUNT_BETREE) != 0)
 
 #endif /* UFS_MOUNT_H */

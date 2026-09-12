@@ -1,0 +1,85 @@
+.\" newfs_ufsbe.8
+.\" SPDX-License-Identifier: BSD-2-Clause
+.Dd September 11, 2026
+.Dt NEWFS_UFSBE 8
+.Os
+.Sh NAME
+.Nm newfs_ufsbe
+.Nd create a UFS2 filesystem for use with ufsbe
+.Sh SYNOPSIS
+.Nm
+.Op Fl NUj
+.Op Fl b Ar bsize
+.Op Fl f Ar fsize
+.Op Fl s Ar sectors
+.Op Fl L Ar label
+.Ar special
+.Sh DESCRIPTION
+.Nm
+creates a UFS2 filesystem on
+.Ar special
+and sets the
+.Dv FS_BETREE
+flag
+.Pq 0x00000800
+in the superblock.
+.Pp
+It does this by first invoking
+.Xr newfs 8
+with
+.Fl O Ar 2
+and any additional options supplied, then reopening the resulting
+superblock with
+.Xr libufs 3
+and OR-ing in
+.Dv FS_BETREE .
+.Pp
+A filesystem created by
+.Nm
+must be mounted with
+.Xr ufsbe 8
+and checked with
+.Xr fsck_ufsbe 8 .
+Do not run
+.Xr fsck_ffs 8
+on such a filesystem; it will misinterpret the B-epsilon tree
+block map as corruption.
+.Sh OPTIONS
+.Bl -tag -width indent
+.It Fl N
+Dry-run: print the
+.Xr newfs 8
+command that would be run and the flag that would be set, but do
+not write anything.
+.It Fl U
+Enable soft updates
+.Pq default: on .
+.It Fl j
+Enable soft-update journaling
+.Pq SUJ .
+.It Fl b Ar bsize
+Block size in bytes
+.Pq default: 32768 .
+.It Fl f Ar fsize
+Fragment size in bytes
+.Pq default: 4096 .
+.It Fl s Ar sectors
+Filesystem size in 512-byte sectors.
+0 or omitted means use the whole device.
+.It Fl L Ar label
+Volume label.
+.El
+.Sh EXAMPLES
+Create a 4 GiB UFS2+softdep+FS_BETREE filesystem on a memory disk:
+.Bd -literal -offset indent
+# truncate -s 4g disk.img
+# mdconfig -a -t vnode -f disk.img
+md0
+# newfs_ufsbe -U /dev/md0
+# ufsbe /dev/md0 /mnt
+.Ed
+.Sh SEE ALSO
+.Xr ufsbe 8 ,
+.Xr fsck_ufsbe 8 ,
+.Xr newfs 8 ,
+.Xr libufs 3

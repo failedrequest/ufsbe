@@ -9,6 +9,8 @@ CFLAGS   = -O2 -g -Wall -Wextra -Wno-unused-parameter \
 
 LDFLAGS  = ${FUSE3_LIBS} -lufs
 
+# ── ufsbe daemon ─────────────────────────────────────────────────────
+
 SRCS     = src/main.c      \
            src/block.c     \
            src/super.c     \
@@ -20,17 +22,95 @@ SRCS     = src/main.c      \
            src/fuse_ops.c
 
 OBJS     = ${SRCS:.c=.o}
-TARGET   = ufs-fuse
+TARGET   = ufsbe
 
-.PHONY: all clean
+# ── newfs_ufsbe ──────────────────────────────────────────────────────
 
-all: ${TARGET}
+NEWFS_SRCS = tools/newfs_ufsbe/newfs_ufsbe.c
+NEWFS_OBJS = ${NEWFS_SRCS:.c=.o}
+NEWFS_TARGET = newfs_ufsbe
+NEWFS_CFLAGS = -O2 -g -Wall -Wextra -Wno-unused-parameter -I./src
+NEWFS_LDFLAGS = -lufs
 
+# ── fsck_ufsbe ───────────────────────────────────────────────────────
+
+FSCK_SRCS = tools/fsck_ufsbe/fsck_ufsbe.c
+FSCK_OBJS = ${FSCK_SRCS:.c=.o}
+FSCK_TARGET = fsck_ufsbe
+FSCK_CFLAGS = -O2 -g -Wall -Wextra -Wno-unused-parameter -I./src
+FSCK_LDFLAGS = -lufs
+
+# ── install paths ─────────────────────────────────────────────────────
+
+PREFIX   ?= /usr/local
+SBINDIR   = ${PREFIX}/sbin
+MANDIR    = ${PREFIX}/share/man
+STAGEDIR ?=
+
+# ── targets ──────────────────────────────────────────────────────────
+
+.PHONY: all clean install install-ufsbe install-newfs install-fsck
+
+all: ${TARGET} ${NEWFS_TARGET} ${FSCK_TARGET}
+
+# ufsbe
 ${TARGET}: ${OBJS}
 	${CC} -o ${TARGET} ${OBJS} ${LDFLAGS}
 
+# newfs_ufsbe
+${NEWFS_TARGET}: ${NEWFS_OBJS}
+	${CC} -o ${NEWFS_TARGET} ${NEWFS_OBJS} ${NEWFS_LDFLAGS}
+
+# fsck_ufsbe
+${FSCK_TARGET}: ${FSCK_OBJS}
+	${CC} -o ${FSCK_TARGET} ${FSCK_OBJS} ${FSCK_LDFLAGS}
+
+# Compile rules
 .c.o:
 	${CC} ${CFLAGS} -c ${.IMPSRC} -o ${.TARGET}
 
+tools/newfs_ufsbe/newfs_ufsbe.o: tools/newfs_ufsbe/newfs_ufsbe.c
+	${CC} ${NEWFS_CFLAGS} -c tools/newfs_ufsbe/newfs_ufsbe.c \
+	    -o tools/newfs_ufsbe/newfs_ufsbe.o
+
+tools/fsck_ufsbe/fsck_ufsbe.o: tools/fsck_ufsbe/fsck_ufsbe.c
+	${CC} ${FSCK_CFLAGS} -c tools/fsck_ufsbe/fsck_ufsbe.c \
+	    -o tools/fsck_ufsbe/fsck_ufsbe.o
+
+# ── install ──────────────────────────────────────────────────────────
+
+install: install-ufsbe install-newfs install-fsck
+
+install-ufsbe: ${TARGET}
+	install -d ${STAGEDIR}${SBINDIR}
+	install -s -m 0555 ${TARGET} ${STAGEDIR}${SBINDIR}/ufsbe
+	install -m 0555 port/files/mount_ufsbe.sh \
+	    ${STAGEDIR}${SBINDIR}/mount_ufsbe
+	install -d ${STAGEDIR}${MANDIR}/man8
+	install -m 0444 port/files/ufsbe.8 \
+	    ${STAGEDIR}${MANDIR}/man8/ufsbe.8
+	install -m 0444 port/files/mount_ufsbe.8 \
+	    ${STAGEDIR}${MANDIR}/man8/mount_ufsbe.8
+
+install-newfs: ${NEWFS_TARGET}
+	install -d ${STAGEDIR}${SBINDIR}
+	install -s -m 0555 ${NEWFS_TARGET} \
+	    ${STAGEDIR}${SBINDIR}/newfs_ufsbe
+	install -d ${STAGEDIR}${MANDIR}/man8
+	install -m 0444 tools/newfs_ufsbe/newfs_ufsbe.8 \
+	    ${STAGEDIR}${MANDIR}/man8/newfs_ufsbe.8
+
+install-fsck: ${FSCK_TARGET}
+	install -d ${STAGEDIR}${SBINDIR}
+	install -s -m 0555 ${FSCK_TARGET} \
+	    ${STAGEDIR}${SBINDIR}/fsck_ufsbe
+	install -d ${STAGEDIR}${MANDIR}/man8
+	install -m 0444 tools/fsck_ufsbe/fsck_ufsbe.8 \
+	    ${STAGEDIR}${MANDIR}/man8/fsck_ufsbe.8
+
+# ── clean ─────────────────────────────────────────────────────────────
+
 clean:
 	rm -f ${OBJS} ${TARGET}
+	rm -f ${NEWFS_OBJS} ${NEWFS_TARGET}
+	rm -f ${FSCK_OBJS} ${FSCK_TARGET}
