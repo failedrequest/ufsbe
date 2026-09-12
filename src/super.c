@@ -90,6 +90,10 @@ super_read(struct ufs_mount *ump)
     if (fs->fs_flags & FS_DOSOFTDEP)
         ump->um_flags |= UFS_MOUNT_SOFTDEP;
 
+    /* Detect B-epsilon tree mode */
+    if (fs->fs_flags & FS_BETREE)
+        ump->um_flags |= UFS_MOUNT_BETREE;
+
     /* Derived constants */
     ump->um_nindir   = (uint64_t)fs->fs_nindir;
     ump->um_bptrtodb = (uint64_t)fs->fs_fsbtodb;
