@@ -52,9 +52,9 @@ do-install:
 		${STAGEDIR}${PREFIX}/share/man/man8/ufsbe.8
 	${INSTALL_MAN} ${FILESDIR}/mount_ufsbe.8 \
 		${STAGEDIR}${PREFIX}/share/man/man8/mount_ufsbe.8
-	${INSTALL_MAN} ${WRKSRC}/tools/newfs_ufsbe/newfs_ufsbe.8 \
+	${INSTALL_MAN} ${WRKSRC}/src/newfs_ufsbe.8 \
 		${STAGEDIR}${PREFIX}/share/man/man8/newfs_ufsbe.8
-	${INSTALL_MAN} ${WRKSRC}/tools/fsck_ufsbe/fsck_ufsbe.8 \
+	${INSTALL_MAN} ${WRKSRC}/src/fsck_ufsbe.8 \
 		${STAGEDIR}${PREFIX}/share/man/man8/fsck_ufsbe.8
 
 .include <bsd.port.mk>

@@ -26,7 +26,7 @@ TARGET   = ufsbe
 
 # ── newfs_ufsbe ──────────────────────────────────────────────────────
 
-NEWFS_SRCS = tools/newfs_ufsbe/newfs_ufsbe.c
+NEWFS_SRCS = src/newfs_ufsbe.c
 NEWFS_OBJS = ${NEWFS_SRCS:.c=.o}
 NEWFS_TARGET = newfs_ufsbe
 NEWFS_CFLAGS = -O2 -g -Wall -Wextra -Wno-unused-parameter -I./src
@@ -34,7 +34,7 @@ NEWFS_LDFLAGS = -lufs
 
 # ── fsck_ufsbe ───────────────────────────────────────────────────────
 
-FSCK_SRCS = tools/fsck_ufsbe/fsck_ufsbe.c
+FSCK_SRCS = src/fsck_ufsbe.c
 FSCK_OBJS = ${FSCK_SRCS:.c=.o}
 FSCK_TARGET = fsck_ufsbe
 FSCK_CFLAGS = -O2 -g -Wall -Wextra -Wno-unused-parameter -I./src
@@ -69,13 +69,11 @@ ${FSCK_TARGET}: ${FSCK_OBJS}
 .c.o:
 	${CC} ${CFLAGS} -c ${.IMPSRC} -o ${.TARGET}
 
-tools/newfs_ufsbe/newfs_ufsbe.o: tools/newfs_ufsbe/newfs_ufsbe.c
-	${CC} ${NEWFS_CFLAGS} -c tools/newfs_ufsbe/newfs_ufsbe.c \
-	    -o tools/newfs_ufsbe/newfs_ufsbe.o
+src/newfs_ufsbe.o: src/newfs_ufsbe.c
+	${CC} ${NEWFS_CFLAGS} -c src/newfs_ufsbe.c -o src/newfs_ufsbe.o
 
-tools/fsck_ufsbe/fsck_ufsbe.o: tools/fsck_ufsbe/fsck_ufsbe.c
-	${CC} ${FSCK_CFLAGS} -c tools/fsck_ufsbe/fsck_ufsbe.c \
-	    -o tools/fsck_ufsbe/fsck_ufsbe.o
+src/fsck_ufsbe.o: src/fsck_ufsbe.c
+	${CC} ${FSCK_CFLAGS} -c src/fsck_ufsbe.c -o src/fsck_ufsbe.o
 
 # ── install ──────────────────────────────────────────────────────────
 
@@ -97,7 +95,7 @@ install-newfs: ${NEWFS_TARGET}
 	install -s -m 0555 ${NEWFS_TARGET} \
 	    ${STAGEDIR}${SBINDIR}/newfs_ufsbe
 	install -d ${STAGEDIR}${MANDIR}/man8
-	install -m 0444 tools/newfs_ufsbe/newfs_ufsbe.8 \
+	install -m 0444 src/newfs_ufsbe.8 \
 	    ${STAGEDIR}${MANDIR}/man8/newfs_ufsbe.8
 
 install-fsck: ${FSCK_TARGET}
@@ -105,7 +103,7 @@ install-fsck: ${FSCK_TARGET}
 	install -s -m 0555 ${FSCK_TARGET} \
 	    ${STAGEDIR}${SBINDIR}/fsck_ufsbe
 	install -d ${STAGEDIR}${MANDIR}/man8
-	install -m 0444 tools/fsck_ufsbe/fsck_ufsbe.8 \
+	install -m 0444 src/fsck_ufsbe.8 \
 	    ${STAGEDIR}${MANDIR}/man8/fsck_ufsbe.8
 
 # ── clean ─────────────────────────────────────────────────────────────
